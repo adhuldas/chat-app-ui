@@ -1,14 +1,16 @@
+// src/pages/ProfilePage.js
 import React, { useContext, useEffect, useState, useMemo, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
+import { decryptPayload } from "../utils/encryption";
 
 const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:9002";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { token, me, fetchMe, logout } = useContext(AuthContext);
+  const { token, me, fetchMe, logout, saveMe } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const fileInputRef = useRef(null);
@@ -19,7 +21,7 @@ export default function ProfilePage() {
     return io(SOCKET_URL, { auth: { token } });
   }, [token]);
 
-  // Fetch user details
+  // Fetch user details on mount
   useEffect(() => {
     let mounted = true;
     if (!me) {
@@ -28,13 +30,16 @@ export default function ProfilePage() {
         if (mounted) setLoading(false);
       });
     }
-    return () => { mounted = false };
-  }, [fetchMe]);
+    return () => { mounted = false; };
+  }, [fetchMe, me]);
 
-  // Fetch profile image
+  // Fetch profile image whenever `me` changes
   useEffect(() => {
     const fetchImage = async () => {
-      if (!me?.files_id || !token) return;
+      if (!me?.files_id || !token) {
+        setImageUrl(null);
+        return;
+      }
       try {
         const res = await fetch(`${me.files_id}`, {
           method: "GET",
@@ -59,19 +64,31 @@ export default function ProfilePage() {
   const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const formData = new FormData();
     formData.append("profile_picture", file);
 
     try {
+      // 1️⃣ Upload new profile picture
       const res = await fetch(`${USER_API}/user/update/profile/image`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       if (!res.ok) throw new Error("Upload failed");
-      // Refresh profile image
-      const newUrl = URL.createObjectURL(file);
-      setImageUrl(newUrl);
+
+      // 2️⃣ Refresh /user/me
+      const meRes = await fetch(`${USER_API}/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!meRes.ok) throw new Error("Failed to fetch user details");
+      const meEncrypted = await meRes.json();
+      const updatedMe = decryptPayload(meEncrypted);
+
+      // 3️⃣ Update context and local image
+      saveMe(updatedMe);
+      setImageUrl(updatedMe.files_id ? URL.createObjectURL(file) : null);
+
       alert("Profile picture updated!");
     } catch (err) {
       console.error(err);
@@ -139,10 +156,10 @@ export default function ProfilePage() {
           <div>Loading…</div>
         ) : (
           <div style={{ background: "#fff", padding: 16, borderRadius: 12, boxShadow: "0 4px 18px rgba(0,0,0,0.05)" }}>
-            <div style={{ marginBottom: 8 }}><b>Username:</b> {me?.username}</div>
-            <div style={{ marginBottom: 8 }}><b>Full Name:</b> {me?.firstname + " " + me?.lastname || "-"}</div>
+            <div style={{ marginBottom: 8 }}><b>Username:</b> {me?.username || "-"}</div>
+            <div style={{ marginBottom: 8 }}><b>Full Name:</b> {me?.firstname && me?.lastname ? `${me.firstname} ${me.lastname}` : "-"}</div>
             <div style={{ marginBottom: 8 }}><b>User ID:</b> {me?.user_id || me?._id || "-"}</div>
-            <div style={{ marginBottom: 8 }}><b>Phone Number:</b> {me?.country_code + " " + me?.phone_number || "-"}</div>
+            <div style={{ marginBottom: 8 }}><b>Phone Number:</b> {me?.country_code && me?.phone_number ? `${me.country_code} ${me.phone_number}` : "-"}</div>
             <div style={{ marginBottom: 8 }}><b>Timezone:</b> {me?.timezone || "-"}</div>
             <button
               onClick={handleLogout}
