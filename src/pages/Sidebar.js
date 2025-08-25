@@ -5,6 +5,7 @@ import "./Sidebar.css";
 import { encryptPayload } from "../utils/encryption"; 
 
 const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
+const DEFAULT_AVATAR = "/images/default.webp"; // Add a default image in your public folder
 
 const Sidebar = ({ users = [], onSelectUser }) => {
   const { token } = useContext(AuthContext);
@@ -53,28 +54,21 @@ const Sidebar = ({ users = [], onSelectUser }) => {
 
   // Handle user selection
   const handleUserClick = (user) => {
-    // Create dynamic variable object if needed
     const dynamicVars = {};
-  
-    // Determine the receiver ID
     let receiver_id = "";
     if (Array.isArray(user.participants) && user.participants.length > 1) {
-      // pick the participant that is NOT the current user
       receiver_id = user.participants.find((id) => id !== user.user_id) || "";
     }
-  
-    // Store in sessionStorage with user_id as key
     sessionStorage.setItem(`receiver_id_${user.user_id}`, receiver_id);
-  
-    // Optionally store in dynamicVars object too
     dynamicVars[`receiver_id_${user.user_id}`] = receiver_id;
-    
-    // Notify parent component
     onSelectUser(user);
-  
-    // Close search UI
     setSearchOpen(false);
     setSearchQuery("");
+  };
+
+  const renderProfileImage = (user) => {
+    const imgUrl = user.recipient_file_id;
+    return imgUrl ? imgUrl : DEFAULT_AVATAR;
   };
 
   return (
@@ -102,6 +96,17 @@ const Sidebar = ({ users = [], onSelectUser }) => {
                       className="sidebar-item"
                       onClick={() => handleUserClick(user)}
                     >
+                      <img
+                        src={renderProfileImage(user)}
+                        alt={user.username}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          marginRight: 8,
+                          objectFit: "cover",
+                        }}
+                      />
                       {user.firstname} {user.lastname} ({user.username})
                     </div>
                   ))
@@ -121,10 +126,23 @@ const Sidebar = ({ users = [], onSelectUser }) => {
               key={user._id || user.user_id}
               className="sidebar-item"
               onClick={() => handleUserClick(user)}
+              style={{ display: "flex", alignItems: "center", gap: 8 }}
             >
-              <strong>{user.username}</strong>
-              <p>{user.recipient_name || "Available"}</p>
-              <p>{user.last_message}</p>
+              <img
+                src={renderProfileImage(user)}
+                alt={user.username}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                }}
+              />
+              <div>
+                <strong>{user.username}</strong>
+                <p>{user.recipient_name || "Available"}</p>
+                <p>{user.last_message}</p>
+              </div>
             </div>
           ))
         ) : (
