@@ -30,22 +30,25 @@ export default function ChatPage() {
   // Socket event listeners
   useEffect(() => {
     if (!socket || !me) return;
-
-    socket.emit("join", { user_id: me.id || me._id });
-
+  
+    const handleConnect = () => {
+      socket.emit("join", { user_id: me.user_id || me._id });
+    };
+  
     const onNewMessage = (msg) => setIncoming(msg);
     const onNewNotification = (n) => console.log("notification", n);
-
+  
+    socket.on("connect", handleConnect);
     socket.on("new_message", onNewMessage);
     socket.on("new_notification", onNewNotification);
-
+  
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("new_message", onNewMessage);
       socket.off("new_notification", onNewNotification);
-      socket.disconnect();
+      // ❌ don't disconnect socket here
     };
   }, [socket, me]);
-
   // Fetch chat list
   useEffect(() => {
     if (!token) return;

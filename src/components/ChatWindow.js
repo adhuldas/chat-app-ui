@@ -3,14 +3,13 @@ import React, { useEffect, useRef, useState } from "react";
 
 const CHAT_API = process.env.REACT_APP_CHAT_API || "http://localhost:9002";
 
-export default function ChatWindow({ me, peer, token, socket }) {
+export default function ChatWindow({ me, peer, token, socket, incoming}) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const endRef = useRef(null);
 
   const myId = me?.id || me?._id || me?.user_id;
-  const peerId = peer?.id || peer?._id || peer?.user_id; // <- fallback to user_id
-
+  const peerId = sessionStorage.getItem(`receiver_id_${me.user_id || me._id}`) || peer?.id || peer?._id || peer?.user_id || "";
   useEffect(() => {
     if (!myId || !peerId) return;
     fetch(`${CHAT_API}/chat/history/${myId}/${peerId}`, {
@@ -35,8 +34,7 @@ export default function ChatWindow({ me, peer, token, socket }) {
     const onNewMessage = (msg) => {
       if (!msg) return;
       const isForThisWindow =
-        (msg.sender_id === peerId && msg.receiver_id === myId) ||
-        (msg.sender_id === myId && msg.receiver_id === peerId);
+        (msg.receiver_id === myId)
       if (isForThisWindow) {
         setMessages((m) => [
           ...m,

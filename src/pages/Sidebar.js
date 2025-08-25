@@ -53,7 +53,26 @@ const Sidebar = ({ users = [], onSelectUser }) => {
 
   // Handle user selection
   const handleUserClick = (user) => {
-    onSelectUser(user); // send selected user to parent
+    // Create dynamic variable object if needed
+    const dynamicVars = {};
+  
+    // Determine the receiver ID
+    let receiver_id = "";
+    if (Array.isArray(user.participants) && user.participants.length > 1) {
+      // pick the participant that is NOT the current user
+      receiver_id = user.participants.find((id) => id !== user.user_id) || "";
+    }
+  
+    // Store in sessionStorage with user_id as key
+    sessionStorage.setItem(`receiver_id_${user.user_id}`, receiver_id);
+  
+    // Optionally store in dynamicVars object too
+    dynamicVars[`receiver_id_${user.user_id}`] = receiver_id;
+    
+    // Notify parent component
+    onSelectUser(user);
+  
+    // Close search UI
     setSearchOpen(false);
     setSearchQuery("");
   };

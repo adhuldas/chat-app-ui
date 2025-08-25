@@ -35,7 +35,6 @@ export default function RegisterPage() {
 
     try {
       const payload = { ...form, token, slug, username, user_type };
-      console.log(payload);
       const body = encryptPayload(payload);
 
       const res = await fetch(`${USER_API}/auth/register`, {
