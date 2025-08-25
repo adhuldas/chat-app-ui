@@ -96,8 +96,8 @@ export default function ChatPage() {
                 width: 36,
                 height: 36,
                 borderRadius: "50%",
-                background: me?.avatar_url
-                  ? `url(${me.avatar_url}) center/cover`
+                background: me?.files_id
+                  ? `url(${me.files_id}) center/cover`
                   : "#ddd",
               }}
             />
