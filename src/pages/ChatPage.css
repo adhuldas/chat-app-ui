@@ -1,0 +1,38 @@
+.plus-button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background-color: #111;
+    color: #fff;
+    cursor: pointer;
+    font-size: 24px;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .plus-button:hover {
+    background-color: #333;
+  }
+  
+  .user-search-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 300px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    padding: 12px;
+    z-index: 100;
+  }
+  
+  .user-search-dropdown input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    margin-bottom: 8px;
+  }
+  
