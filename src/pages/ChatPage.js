@@ -30,18 +30,18 @@ export default function ChatPage() {
   // Socket event listeners
   useEffect(() => {
     if (!socket || !me) return;
-  
+
     const handleConnect = () => {
       socket.emit("join", { user_id: me.user_id || me._id });
     };
-  
+
     const onNewMessage = (msg) => setIncoming(msg);
     const onNewNotification = (n) => console.log("notification", n);
-  
+
     socket.on("connect", handleConnect);
     socket.on("new_message", onNewMessage);
     socket.on("new_notification", onNewNotification);
-  
+
     return () => {
       socket.off("connect", handleConnect);
       socket.off("new_message", onNewMessage);
@@ -67,31 +67,60 @@ export default function ChatPage() {
     navigate("/");
   };
 
+  // Navigate to profile
+  const goToProfile = () => navigate("/me");
+
   return (
     <div style={{ height: "100vh", display: "flex", background: "#f6f6f6" }}>
-      <Sidebar
-        users={chats}
-        onSelectUser={(u) => setActive(u)}
-      />
+      <Sidebar users={chats} onSelectUser={(u) => setActive(u)} />
       <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-        {/* Logout button */}
-        <button
-          onClick={handleLogout}
+        {/* Profile & Logout */}
+        <div
           style={{
             position: "absolute",
             top: 16,
             right: 16,
-            padding: "8px 16px",
-            borderRadius: 8,
-            border: "none",
-            background: "#111",
-            color: "#fff",
-            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
             zIndex: 10,
           }}
         >
-          Logout
-        </button>
+          {/* Profile */}
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+            onClick={goToProfile}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: me?.avatar_url
+                  ? `url(${me.avatar_url}) center/cover`
+                  : "#ddd",
+              }}
+            />
+            <span style={{ fontWeight: 600, fontSize: 14 }}>
+              {me?.display_name || me?.username}
+            </span>
+          </div>
+
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "none",
+              background: "#111",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Logout
+          </button>
+        </div>
 
         {active ? (
           <ChatWindow me={me} peer={active} token={token} socket={socket} />

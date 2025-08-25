@@ -95,7 +95,7 @@ export default function LoginPage() {
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
               style={{
-                width: "100%",
+                width: "94%",
                 padding: 10,
                 borderRadius: 10,
                 border: "1px solid #ddd",
@@ -110,7 +110,7 @@ export default function LoginPage() {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               style={{
-                width: "100%",
+                width: "94%",
                 padding: 10,
                 borderRadius: 10,
                 border: "1px solid #ddd",
