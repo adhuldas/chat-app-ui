@@ -12,3 +12,19 @@ export function encryptPayload(obj) {
   const encoded = token.encode(json);
   return { data: encoded };
 }
+
+export function decryptPayload(encrypted) {
+  try {
+    // encrypted should be { data: "<fernet token>" }
+    const tokenStr = encrypted?.data;
+    if (!tokenStr) return null;
+
+    const secret = new fernet.Secret(FERNET_SECRET);
+    const token = new fernet.Token({ secret, token: tokenStr, ttl: 0 }); // ttl 0 = ignore expiration
+    const json = token.decode();
+    return JSON.parse(json);
+  } catch (err) {
+    console.error("Failed to decrypt payload:", err);
+    return null;
+  }
+}

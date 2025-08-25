@@ -1,5 +1,7 @@
 // src/context/AuthContext.js
-import React, { createContext, useState } from "react";
+import React, { createContext, useState, useCallback } from "react";
+
+const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
 
 export const AuthContext = createContext({});
 
@@ -23,9 +25,25 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("me");
   };
+  // <-- Add this function
+  const fetchMe = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${USER_API}/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch user");
+      const data = await res.json();
+      setMe(data);
+      return data;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  }, [token]);
 
   return (
-    <AuthContext.Provider value={{ token, saveToken, me, saveMe, logout }}>
+    <AuthContext.Provider value={{ token, me, saveToken, saveMe, logout, fetchMe }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,6 +3,7 @@ import React, { useContext, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { encryptPayload } from "../utils/encryption";
+import { decryptPayload } from "../utils/encryption";
 
 const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
 
@@ -24,6 +25,7 @@ export default function LoginPage() {
 
     setBusy(true);
     try {
+      // 1️⃣ Sign in
       const body = encryptPayload(form);
       const res = await fetch(`${USER_API}/user/signin`, {
         method: "POST",
@@ -36,12 +38,28 @@ export default function LoginPage() {
         throw new Error(text || "Signin failed");
       }
 
-      const data = await res.json(); // { token, user }
-      saveToken(data.access_token);
-      saveMe(data.user || null);
+      const data = await res.json(); // { access_token, user }
+      const token = data.access_token;
+      saveToken(token);
 
+      // 2️⃣ Fetch and decrypt user details
+      const meRes = await fetch(`${USER_API}/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!meRes.ok) {
+        const text = await meRes.text();
+        throw new Error(text || "Failed to fetch user details");
+      }
+
+      const meEncrypted = await meRes.json(); // encrypted response
+      const me = decryptPayload(meEncrypted);  // decrypt
+      saveMe(me);
+
+      // 3️⃣ Navigate to chat
       navigate("/chat");
     } catch (err) {
+      console.error(err);
       setError(err.message || "Signin failed");
     } finally {
       setBusy(false);
