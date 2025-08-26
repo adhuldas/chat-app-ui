@@ -1,5 +1,4 @@
 // utils/fetchWithAuth.js
-import { decryptPayload, encryptPayload } from "./encryption";
 const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
 export const fetchWithAuth = async (url, options = {}, context) => {
   const { token, refreshToken, saveToken, saveRefreshToken, signOut } = context;
@@ -14,12 +13,12 @@ export const fetchWithAuth = async (url, options = {}, context) => {
   if (res.status === 401) {
     // Access token expired, try refresh
     try {
-      const body = encryptPayload({ refresh_token: refreshToken });
+      const refresh = localStorage.getItem("refresh_token")
       const refreshRes = await fetch(`${USER_API}/user/refresh/token`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${refreshToken}`,
+          Authorization: `Bearer ${refresh}`,
         },
       });
 
