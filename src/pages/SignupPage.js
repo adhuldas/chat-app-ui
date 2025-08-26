@@ -33,10 +33,10 @@ export default function SignupPage() {
 
       const data = await res.json(); // expect { token, slug }
       // store in sessionStorage
-      sessionStorage.setItem("signup_token", data.token);
-      sessionStorage.setItem("signup_slug", data.slug);
-      sessionStorage.setItem("signup_user_type",data.user_type)
-      sessionStorage.setItem("singup_email",data.email)
+      localStorage.setItem("signup_token", data.token);
+      localStorage.setItem("signup_slug", data.slug);
+      localStorage.setItem("signup_user_type",data.user_type)
+      localStorage.setItem("singup_email",data.email)
 
       navigate("/register");
     } catch (err) {

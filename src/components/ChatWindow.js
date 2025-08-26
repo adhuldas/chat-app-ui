@@ -4,6 +4,8 @@ import { AuthContext } from "../context/AuthContext";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const CHAT_API = process.env.REACT_APP_CHAT_API || "http://localhost:9002";
+const DEFAULT_AVATAR = "/images/default.webp"; // Add a default image in your public folder
+
 
 export default function ChatWindow({ me, peer, token, socket, onResetUnread }) {
   const [messages, setMessages] = useState([]);
@@ -12,8 +14,9 @@ export default function ChatWindow({ me, peer, token, socket, onResetUnread }) {
   const endRef = useRef(null);
 
   const myId = me?.id || me?._id || me?.user_id;
+  console.log(peer)
   const peerId =
-    sessionStorage.getItem(`receiver_id_${me.user_id || me._id}`) ||
+    localStorage.getItem(`receiver_id_${me.user_id || me._id}`) ||
     peer?.id ||
     peer?._id ||
     peer?.user_id ||
@@ -100,8 +103,9 @@ export default function ChatWindow({ me, peer, token, socket, onResetUnread }) {
 
   // Send a message
   const send = async () => {
+    console.log(text,peerId)
     const value = text.trim();
-    if (!value || !peerId || !conversationId) return;
+    if (!value || !peerId) return;
 
     // Optimistic update
     const tempMsg = {
@@ -131,12 +135,25 @@ export default function ChatWindow({ me, peer, token, socket, onResetUnread }) {
     }
   };
 
+  const renderProfileImage = () => {
+    const imgUrl = peer.recipient_file_id;
+    return imgUrl ? imgUrl : DEFAULT_AVATAR;
+  };
+
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Header */}
-      <div style={{ padding: "10px 16px", background: "#fff", borderBottom: "1px solid #eee", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 999, background: "#ddd" }} />
-        <div style={{ fontWeight: 600 }}>{peer?.display_name || peer?.username}</div>
+      <div style={{ padding: "10px 16px", background: "#fff", borderBottom: "1px solid #eee", display: "flex", alignItems: "center", gap: 10}}>
+      <img src={renderProfileImage()}
+      alt={peer.username}
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: "50%",
+        marginRight: 8,
+        objectFit: "cover",
+      }}/>
+        <div style={{ fontWeight: 600 }}>{peer?.display_name || peer?.recipient_name}</div>
       </div>
 
       {/* Messages */}

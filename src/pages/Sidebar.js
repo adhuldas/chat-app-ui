@@ -65,7 +65,7 @@ const Sidebar = ({ users = [], onSelectUser, unreadCounts = {}, lastMessages = {
     if (Array.isArray(user.participants) && user.participants.length > 1) {
       receiver_id = user.participants.find((id) => id !== user.user_id) || "";
     }
-    sessionStorage.setItem(`receiver_id_${user.user_id}`, receiver_id);
+    localStorage.setItem(`receiver_id_${user.user_id}`, receiver_id);
     dynamicVars[`receiver_id_${user.user_id}`] = receiver_id;
     onSelectUser(user);
     setSearchOpen(false);

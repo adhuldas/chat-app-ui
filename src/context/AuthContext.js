@@ -7,7 +7,7 @@ export const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem("token"));
-  const [refreshToken, setRefreshToken] = useState(sessionStorage.getItem("refresh_token") || "");
+  const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refresh_token") || "");
   const [me, setMe] = useState(() => JSON.parse(localStorage.getItem("me")));
 
   const saveToken = (t) => {
@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
 
   const saveRefreshToken = (t) => {
     setRefreshToken(t);
-    sessionStorage.setItem("refresh_token", t);
+    localStorage.setItem("refresh_token", t);
   };
 
   const saveMe = (user) => {
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
     setToken("");
     setRefreshToken("");
     setMe(null);
-    sessionStorage.clear();
+    localStorage.clear();
     window.location.href = "/";
   };
 

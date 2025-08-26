@@ -54,7 +54,7 @@ export default function LoginPage() {
           saveToken("");
           saveRefreshToken("");
           saveMe(null);
-          sessionStorage.clear();
+          localStorage.clear();
           navigate("/");
         },
       });

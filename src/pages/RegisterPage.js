@@ -26,10 +26,10 @@ export default function RegisterPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const token = sessionStorage.getItem("signup_token");
-  const slug = sessionStorage.getItem("signup_slug");
-  const username = sessionStorage.getItem("singup_email");
-  const user_type = sessionStorage.getItem("signup_user_type");
+  const token = localStorage.getItem("signup_token");
+  const slug = localStorage.getItem("signup_slug");
+  const username = localStorage.getItem("singup_email");
+  const user_type = localStorage.getItem("signup_user_type");
 
   useEffect(() => {
     if (!token || !slug) {
@@ -101,6 +101,10 @@ export default function RegisterPage() {
     } catch (err) {
       setError(err.message || "Register failed");
     } finally {
+      localStorage.removeItem("signup_token");
+      localStorage.removeItem("signup_slug");
+      localStorage.removeItem("signup_user_type")
+      localStorage.removeItem("singup_email")
       setBusy(false);
     }
   };
