@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
     setRefreshToken("");
     setMe(null);
     sessionStorage.clear();
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   return (

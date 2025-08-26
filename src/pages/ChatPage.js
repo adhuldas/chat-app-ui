@@ -127,7 +127,7 @@ export default function ChatPage() {
   const handleLogout = () => {
     if (socket) socket.disconnect();
     logout();
-    navigate("/login");
+    navigate("/");
   };
 
   // Navigate to profile

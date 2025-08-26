@@ -55,7 +55,7 @@ export default function LoginPage() {
           saveRefreshToken("");
           saveMe(null);
           sessionStorage.clear();
-          navigate("/login");
+          navigate("/");
         },
       });
 
