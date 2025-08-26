@@ -9,6 +9,7 @@ import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const CHAT_API = process.env.REACT_APP_CHAT_API || "http://localhost:9002";
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:9002";
+const DEFAULT_AVATAR = "/images/default.webp"; // Add a default image in your public folder
 
 export default function ChatPage() {
   const { token, me, logout } = useContext(AuthContext);
@@ -18,7 +19,7 @@ export default function ChatPage() {
   const [active, setActive] = useState(null); // Active user/chat
   const [unreadCounts, setUnreadCounts] = useState({}); // { conversationId: count }
   const [lastMessages, setLastMessages] = useState({}); // { conversationId: lastMsg }
-
+  const imageUrl = me.files_id || DEFAULT_AVATAR
   // Redirect if not logged in
   useEffect(() => {
     if (!token) navigate("/");
@@ -164,7 +165,7 @@ export default function ChatPage() {
                 width: 36,
                 height: 36,
                 borderRadius: "50%",
-                background: me?.files_id ? `url(${me.files_id}) center/cover` : "#ddd",
+                background: imageUrl? `url(${imageUrl}) center/cover` : "#ddd",
               }}
             />
             <span style={{ fontWeight: 600, fontSize: 14 }}>

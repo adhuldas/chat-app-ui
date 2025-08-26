@@ -284,7 +284,7 @@ export default function RegisterPage() {
             {busy ? "Registering..." : "Register"}
           </button>
         </form>
-        <div style={{ marginTop: 12, fontSize: 13 }}>
+        <div style={{ marginTop: 12, fontSize: 13, marginLeft:275}}>
           Back to <a href="/">Sign in</a>
         </div>
       </div>

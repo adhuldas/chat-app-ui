@@ -1,6 +1,6 @@
 // SignupPage.js
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,Link } from "react-router-dom";
 import { encryptPayload } from "../utils/encryption";
 
 const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
@@ -57,7 +57,7 @@ export default function SignupPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", marginTop: 6 }}
+              style={{ width: "93%", padding: 12, borderRadius: 10, border: "1px solid #ddd", marginTop: 6 }}
             />
           </label>
           {error && <div style={{ color: "#d00", fontSize: 13, marginBottom: 8 }}>{error}</div>}
@@ -68,6 +68,9 @@ export default function SignupPage() {
             {busy ? "Creating..." : "Continue"}
           </button>
         </form>
+          <div style={{ marginTop: 12, fontSize: 13, marginLeft:165 }}>
+            Already have an account? <Link to="/">Login here</Link>
+          </div>
       </div>
     </div>
   );
