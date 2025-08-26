@@ -24,7 +24,7 @@ export const fetchWithAuth = async (url, options = {}, context) => {
       });
 
       if (!refreshRes.ok) {
-        throw new Error("Refresh token expired");
+        signOut(); // Both tokens expired, logout
       }
 
       const data = await refreshRes.json(); // { access_token, refresh_token }
