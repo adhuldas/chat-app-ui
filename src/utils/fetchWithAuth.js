@@ -11,7 +11,6 @@ export const fetchWithAuth = async (url, options = {}, context) => {
   };
 
   let res = await fetch(url, options);
-  console.log(res,"++++")
   if (res.status === 401) {
     // Access token expired, try refresh
     try {

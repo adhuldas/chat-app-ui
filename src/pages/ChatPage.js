@@ -1,5 +1,5 @@
 // src/pages/ChatPage.js
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import Sidebar from "./Sidebar";
@@ -14,8 +14,10 @@ export default function ChatPage() {
   const { token, me, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [chats, setChats] = useState([]);
-  const [active, setActive] = useState(null);
-  const [incoming, setIncoming] = useState(null);
+  const [messages, setMessages] = useState({}); // { conversationId: [msgs] }
+  const [active, setActive] = useState(null); // Active user/chat
+  const [unreadCounts, setUnreadCounts] = useState({}); // { conversationId: count }
+  const [lastMessages, setLastMessages] = useState({}); // { conversationId: lastMsg }
 
   // Redirect if not logged in
   useEffect(() => {
@@ -28,6 +30,18 @@ export default function ChatPage() {
     return io(SOCKET_URL, { auth: { token } });
   }, [token]);
 
+  // Handle unread count and last message
+  const handleResetUnread = useCallback((convId, increment) => {
+    if (increment) {
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [convId]: (prev[convId] || 0) + 1,
+      }));
+    } else {
+      setUnreadCounts((prev) => ({ ...prev, [convId]: 0 }));
+    }
+  }, []);
+
   // Socket event listeners
   useEffect(() => {
     if (!socket || !me) return;
@@ -36,20 +50,42 @@ export default function ChatPage() {
       socket.emit("join", { user_id: me.user_id || me._id });
     };
 
-    const onNewMessage = (msg) => setIncoming(msg);
-    const onNewNotification = (n) => console.log("notification", n);
+    const handleNewMessage = (msg) => {
+      if (!msg || !msg.conversation_id) return;
+
+      const convId = msg.conversation_id;
+      const activeConvId = active?.conversation_id || null;
+
+      // Update messages state
+      setMessages((prev) => {
+        const convMessages = prev[convId] || [];
+        return {
+          ...prev,
+          [convId]: [...convMessages, msg],
+        };
+      });
+
+      // Update last message
+      setLastMessages((prev) => ({
+        ...prev,
+        [convId]: msg.message,
+      }));
+
+      // Update unread count if not active
+      if (convId !== activeConvId) {
+        handleResetUnread(convId, true);
+      }
+    };
 
     socket.on("connect", handleConnect);
-    socket.on("new_message", onNewMessage);
-    socket.on("new_notification", onNewNotification);
+    socket.on("new_message", handleNewMessage);
 
     return () => {
       socket.off("connect", handleConnect);
-      socket.off("new_message", onNewMessage);
-      socket.off("new_notification", onNewNotification);
-      // ❌ don't disconnect socket here
+      socket.off("new_message", handleNewMessage);
     };
-  }, [socket, me]);
+  }, [socket, me, active, handleResetUnread]);
+
   // Fetch chat list
   useEffect(() => {
     if (!token) return;
@@ -58,10 +94,10 @@ export default function ChatPage() {
       try {
         const res = await fetchWithAuth(`${CHAT_API}/chat/list`, { method: "GET" }, {
           token,
-          refreshToken: null, // if your context doesn't provide it, pass null
-          saveToken: () => {}, // no-op
-          saveRefreshToken: () => {}, // no-op
-          signOut: logout,      // use existing logout
+          refreshToken: null,
+          saveToken: () => {},
+          saveRefreshToken: () => {},
+          signOut: logout,
         });
 
         if (!res.ok) throw new Error("Failed to fetch chats");
@@ -77,18 +113,35 @@ export default function ChatPage() {
     fetchChats();
   }, [token, logout]);
 
+  // Handle selecting a chat
+  const handleSelectUser = (user) => {
+    setActive(user);
+
+    // Reset unread count for this conversation
+    if (user.conversation_id) {
+      handleResetUnread(user.conversation_id, false);
+    }
+  };
+
   // Logout handler
   const handleLogout = () => {
     if (socket) socket.disconnect();
     logout();
     navigate("/login");
   };
+
   // Navigate to profile
   const goToProfile = () => navigate("/me");
 
   return (
     <div style={{ height: "100vh", display: "flex", background: "#f6f6f6" }}>
-      <Sidebar users={chats} onSelectUser={(u) => setActive(u)} />
+      <Sidebar
+        users={chats}
+        onSelectUser={handleSelectUser}
+        unreadCounts={unreadCounts}
+        lastMessages={lastMessages}
+      />
+
       <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
         {/* Profile & Logout */}
         <div
@@ -102,7 +155,6 @@ export default function ChatPage() {
             zIndex: 10,
           }}
         >
-          {/* Profile */}
           <div
             style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
             onClick={goToProfile}
@@ -112,9 +164,7 @@ export default function ChatPage() {
                 width: 36,
                 height: 36,
                 borderRadius: "50%",
-                background: me?.files_id
-                  ? `url(${me.files_id}) center/cover`
-                  : "#ddd",
+                background: me?.files_id ? `url(${me.files_id}) center/cover` : "#ddd",
               }}
             />
             <span style={{ fontWeight: 600, fontSize: 14 }}>
@@ -122,7 +172,6 @@ export default function ChatPage() {
             </span>
           </div>
 
-          {/* Logout button */}
           <button
             onClick={handleLogout}
             style={{
@@ -139,7 +188,13 @@ export default function ChatPage() {
         </div>
 
         {active ? (
-          <ChatWindow me={me} peer={active} token={token} socket={socket} />
+          <ChatWindow
+            me={me}
+            peer={active}
+            token={token}
+            socket={socket}
+            onResetUnread={handleResetUnread}
+          />
         ) : (
           <div
             style={{
