@@ -4,12 +4,13 @@ import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { encryptPayload } from "../utils/encryption";
 import { decryptPayload } from "../utils/encryption";
+import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { saveToken, saveMe } = useContext(AuthContext);
+  const { saveToken, saveMe ,saveRefreshToken} = useContext(AuthContext);
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,10 +42,21 @@ export default function LoginPage() {
       const data = await res.json(); // { access_token, user }
       const token = data.access_token;
       saveToken(token);
+      saveRefreshToken(data.refresh_token);
 
       // 2️⃣ Fetch and decrypt user details
-      const meRes = await fetch(`${USER_API}/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const meRes = await fetchWithAuth(`${USER_API}/user/me`, { method: "GET" }, {
+        token: data.access_token,
+        refreshToken: data.refresh_token,
+        saveToken,
+        saveRefreshToken,
+        signOut: () => {
+          saveToken("");
+          saveRefreshToken("");
+          saveMe(null);
+          sessionStorage.clear();
+          navigate("/login");
+        },
       });
 
       if (!meRes.ok) {

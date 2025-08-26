@@ -3,12 +3,13 @@ import React, { useState, useRef, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import "./Sidebar.css";
 import { encryptPayload } from "../utils/encryption"; 
+import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
 const DEFAULT_AVATAR = "/images/default.webp"; // Add a default image in your public folder
 
 const Sidebar = ({ users = [], onSelectUser }) => {
-  const { token } = useContext(AuthContext);
+  const { token, logout } = useContext(AuthContext);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -29,28 +30,34 @@ const Sidebar = ({ users = [], onSelectUser }) => {
   useEffect(() => {
     if (!searchQuery || !token) return setSearchResults([]);
     const controller = new AbortController();
+
     const fetchUsers = async () => {
       try {
         const body = encryptPayload({ search_data: searchQuery });
-        const res = await fetch(`${USER_API}/user/list`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+        const res = await fetchWithAuth(
+          `${USER_API}/user/list`,
+          {
+            method: "POST",
+            body: JSON.stringify(body),
+            signal: controller.signal,
+            headers: { "Content-Type": "application/json" }, // only content-type
           },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        });
+          { token, refreshToken: null, saveToken: () => {}, saveRefreshToken: () => {}, signOut: logout }
+        );
+
         if (!res.ok) throw new Error("Failed to fetch users");
+
         const data = await res.json();
         setSearchResults(Array.isArray(data) ? data : []);
-      } catch {
+      } catch (err) {
+        console.error(err);
         setSearchResults([]);
       }
     };
+
     fetchUsers();
     return () => controller.abort();
-  }, [searchQuery, token]);
+  }, [searchQuery, token, logout, setSearchResults]);
 
   // Handle user selection
   const handleUserClick = (user) => {

@@ -1,5 +1,7 @@
 // src/components/ChatWindow.js
 import React, { useEffect, useRef, useState } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const CHAT_API = process.env.REACT_APP_CHAT_API || "http://localhost:9002";
 
@@ -11,23 +13,44 @@ export default function ChatWindow({ me, peer, token, socket, incoming}) {
   const myId = me?.id || me?._id || me?.user_id;
   const peerId = sessionStorage.getItem(`receiver_id_${me.user_id || me._id}`) || peer?.id || peer?._id || peer?.user_id || "";
   useEffect(() => {
-    if (!myId || !peerId) return;
-    fetch(`${CHAT_API}/chat/history/${myId}/${peerId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
+    if (!myId || !peerId || !token) return;
+
+    const fetchHistory = async () => {
+      try {
+        const res = await fetchWithAuth(
+          `${CHAT_API}/chat/history/${myId}/${peerId}`,
+          { method: "GET" },
+          {
+            token,
+            refreshToken: null,      // if your context doesn't have refresh token
+            saveToken: () => {},     // no-op
+            saveRefreshToken: () => {}, // no-op
+            signOut: logout,
+          }
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch chat history");
+
+        const data = await res.json();
         const arr = Array.isArray(data.messages || data) ? (data.messages || data) : [];
+
         const norm = arr.map((m, idx) => ({
           id: m.id || m._id || `h${idx}`,
           from: m.sender_id === myId ? "me" : "them",
           text: m.message || m.text || "",
           ts: m.ts || Date.now(),
         }));
+
         setMessages(norm);
-      })
-      .catch(() => setMessages([]));
-  }, [myId, peerId, token]);
+      } catch (err) {
+        console.error(err);
+        setMessages([]);
+      }
+    };
+
+    fetchHistory();
+  }, [myId, peerId, token, logout]);
+
 
   useEffect(() => {
     if (!socket) return;
@@ -54,15 +77,27 @@ export default function ChatWindow({ me, peer, token, socket, incoming}) {
     const value = text.trim();
     if (!value || !peerId) return;
 
+    // Optimistic update
     setMessages((m) => [...m, { id: `tmp-${Date.now()}`, from: "me", text: value, ts: Date.now() }]);
     setText("");
 
     try {
-      const res = await fetch(`${CHAT_API}/chat/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ receiver_id: peerId, message: value }),
-      });
+      const res = await fetchWithAuth(
+        `${CHAT_API}/chat/send`,
+        {
+          method: "POST",
+          body: JSON.stringify({ receiver_id: peerId, message: value }),
+          headers: { "Content-Type": "application/json" }, // content-type is fine
+        },
+        {
+          token,
+          refreshToken: null,
+          saveToken: () => {},
+          saveRefreshToken: () => {},
+          signOut: logout,
+        }
+      );
+
       if (!res.ok) console.error("send failed", await res.text());
     } catch (e) {
       console.error("send error", e);

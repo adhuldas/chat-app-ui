@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import Sidebar from "./Sidebar";
 import ChatWindow from "../components/ChatWindow";
 import { io } from "socket.io-client";
+import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const CHAT_API = process.env.REACT_APP_CHAT_API || "http://localhost:9002";
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:9002";
@@ -52,21 +53,36 @@ export default function ChatPage() {
   // Fetch chat list
   useEffect(() => {
     if (!token) return;
-    fetch(`${CHAT_API}/chat/list`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => setChats(Array.isArray(data) ? data : []))
-      .catch(() => setChats([]));
-  }, [token]);
+
+    const fetchChats = async () => {
+      try {
+        const res = await fetchWithAuth(`${CHAT_API}/chat/list`, { method: "GET" }, {
+          token,
+          refreshToken: null, // if your context doesn't provide it, pass null
+          saveToken: () => {}, // no-op
+          saveRefreshToken: () => {}, // no-op
+          signOut: logout,      // use existing logout
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch chats");
+
+        const data = await res.json();
+        setChats(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error(err);
+        setChats([]);
+      }
+    };
+
+    fetchChats();
+  }, [token, logout]);
 
   // Logout handler
   const handleLogout = () => {
     if (socket) socket.disconnect();
     logout();
-    navigate("/");
+    navigate("/login");
   };
-
   // Navigate to profile
   const goToProfile = () => navigate("/me");
 

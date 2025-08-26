@@ -4,6 +4,7 @@ import { AuthContext } from "../context/AuthContext";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import { decryptPayload } from "../utils/encryption";
+import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:9002";
@@ -33,22 +34,22 @@ export default function ProfilePage() {
     return () => { mounted = false; };
   }, [fetchMe, me]);
 
-  // Fetch profile image whenever `me` changes
   useEffect(() => {
     const fetchImage = async () => {
       if (!me?.files_id || !token) {
         setImageUrl(null);
         return;
       }
+  
       try {
-        const res = await fetch(`${me.files_id}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const res = await fetchWithAuth(
+          me.files_id, // assuming this is the URL to the image
+          { method: "GET" },
+          { token, refreshToken: null, saveToken: () => {}, saveRefreshToken: () => {}, signOut: logout }
+        );
+  
         if (!res.ok) throw new Error("Failed to fetch image");
+  
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         setImageUrl(url);
@@ -57,10 +58,17 @@ export default function ProfilePage() {
         setImageUrl(null);
       }
     };
+  
     fetchImage();
-  }, [me, token]);
+  }, [me, token, logout]);
 
-  // Handle profile picture change
+  // Initialize imageUrl from context
+  useEffect(() => {
+    if (me?.files_id) {
+      setImageUrl(me.files_id);
+    }
+  }, [me]);
+
   const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -70,18 +78,23 @@ export default function ProfilePage() {
 
     try {
       // 1️⃣ Upload new profile picture
-      const res = await fetch(`${USER_API}/user/update/profile/image`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Upload failed");
+      const uploadRes = await fetchWithAuth(
+        `${USER_API}/user/update/profile/image`,
+        { method: "POST", body: formData },
+        { token, refreshToken: null, saveToken: () => {}, saveRefreshToken: () => {}, signOut: logout }
+      );
 
-      // 2️⃣ Refresh /user/me
-      const meRes = await fetch(`${USER_API}/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+
+      // 2️⃣ Fetch updated /user/me
+      const meRes = await fetchWithAuth(
+        `${USER_API}/user/me`,
+        { method: "GET" },
+        { token, refreshToken: null, saveToken: () => {}, saveRefreshToken: () => {}, signOut: logout }
+      );
+
       if (!meRes.ok) throw new Error("Failed to fetch user details");
+
       const meEncrypted = await meRes.json();
       const updatedMe = decryptPayload(meEncrypted);
 
