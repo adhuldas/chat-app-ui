@@ -4,6 +4,7 @@ import { AuthContext } from "../context/AuthContext";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const CHAT_API = process.env.REACT_APP_CHAT_API || "http://localhost:9002";
+const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
 const DEFAULT_AVATAR = "/images/default.webp"; // Add a default image in your public folder
 
 
@@ -14,7 +15,6 @@ export default function ChatWindow({ me, peer, token, socket, onResetUnread }) {
   const endRef = useRef(null);
 
   const myId = me?.id || me?._id || me?.user_id;
-  console.log(peer)
   const peerId =
     localStorage.getItem(`receiver_id_${me.user_id || me._id}`) ||
     peer?.id ||
@@ -103,7 +103,6 @@ export default function ChatWindow({ me, peer, token, socket, onResetUnread }) {
 
   // Send a message
   const send = async () => {
-    console.log(text,peerId)
     const value = text.trim();
     if (!value || !peerId) return;
 
@@ -136,7 +135,13 @@ export default function ChatWindow({ me, peer, token, socket, onResetUnread }) {
   };
 
   const renderProfileImage = () => {
-    const imgUrl = peer.recipient_file_id;
+    console.log(peer)
+    let imgUrl = ""
+    if(peer.recipient_file_id){
+      imgUrl = peer.recipient_file_id;
+    }else if(peer.files_id){
+      imgUrl = `${USER_API}/user/image/${peer.files_id}`
+    }
     return imgUrl ? imgUrl : DEFAULT_AVATAR;
   };
 
@@ -145,7 +150,7 @@ export default function ChatWindow({ me, peer, token, socket, onResetUnread }) {
       {/* Header */}
       <div style={{ padding: "10px 16px", background: "#fff", borderBottom: "1px solid #eee", display: "flex", alignItems: "center", gap: 10}}>
       <img src={renderProfileImage()}
-      alt={peer.username}
+      alt={peer.username || peer.user_id}
       style={{
         width: 36,
         height: 36,
@@ -153,7 +158,7 @@ export default function ChatWindow({ me, peer, token, socket, onResetUnread }) {
         marginRight: 8,
         objectFit: "cover",
       }}/>
-        <div style={{ fontWeight: 600 }}>{peer?.display_name || peer?.recipient_name}</div>
+        <div style={{ fontWeight: 600 }}>{peer?.recipient_name||peer?.firstname+" "+peer?.lastname }</div>
       </div>
 
       {/* Messages */}

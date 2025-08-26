@@ -7,6 +7,7 @@ import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const USER_API = process.env.REACT_APP_USER_API || "http://localhost:9001";
 const DEFAULT_AVATAR = "/images/default.webp"; // Add a default image in your public folder
+const OPENED_CHAT_USER_IMAGE = ""
 
 const Sidebar = ({ users = [], onSelectUser, unreadCounts = {}, lastMessages = {} }) => {
   const { token, logout } = useContext(AuthContext);
@@ -59,21 +60,34 @@ const Sidebar = ({ users = [], onSelectUser, unreadCounts = {}, lastMessages = {
     return () => controller.abort();
   }, [searchQuery, token, logout]);
 
-  const handleUserClick = (user) => {
+  const handleUserClick = (user,isSearch=false) => {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("receiver_id_")) {
+        localStorage.removeItem(key);
+      }
+    });
     const dynamicVars = {};
     let receiver_id = "";
-    if (Array.isArray(user.participants) && user.participants.length > 1) {
+    if (!isSearch && Array.isArray(user.participants) && user.participants.length > 1) {
       receiver_id = user.participants.find((id) => id !== user.user_id) || "";
+    }else{
+      receiver_id = user.user_id
     }
     localStorage.setItem(`receiver_id_${user.user_id}`, receiver_id);
     dynamicVars[`receiver_id_${user.user_id}`] = receiver_id;
     onSelectUser(user);
     setSearchOpen(false);
     setSearchQuery("");
+    renderProfileImage(user)
   };
 
   const renderProfileImage = (user) => {
-    const imgUrl = user.recipient_file_id;
+    let imgUrl = ""
+    if(user.recipient_file_id){
+      imgUrl =  user.recipient_file_id;
+    }else if(user.files_id){
+      imgUrl = `${USER_API}/user/image/${user.files_id}`
+    }
     return imgUrl ? imgUrl : DEFAULT_AVATAR;
   };
 
@@ -100,11 +114,11 @@ const Sidebar = ({ users = [], onSelectUser, unreadCounts = {}, lastMessages = {
                     <div
                       key={`${user._id || user.user_id}-${idx}`}
                       className="sidebar-item"
-                      onClick={() => handleUserClick(user)}
+                      onClick={() => handleUserClick(user,true)}
                     >
                       <img
                         src={renderProfileImage(user)}
-                        alt={user.username}
+                        alt={user.username || user.user_id}
                         style={{
                           width: 36,
                           height: 36,
@@ -140,7 +154,7 @@ const Sidebar = ({ users = [], onSelectUser, unreadCounts = {}, lastMessages = {
               >
                 <img
                   src={renderProfileImage(user)}
-                  alt={user.username}
+                  alt={user.username || user.user_id}
                   style={{
                     width: 36,
                     height: 36,
@@ -149,7 +163,7 @@ const Sidebar = ({ users = [], onSelectUser, unreadCounts = {}, lastMessages = {
                   }}
                 />
                 <div style={{ flex: 1 }}>
-                  <p>{user.recipient_name}</p>
+                  <p>{user.recipient_name || user.firstname+" "+user.lastname}</p>
                   <p style={{ fontSize: 12, color: "#555", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {lastMsg}
                   </p>

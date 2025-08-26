@@ -72,6 +72,7 @@ export default function ProfilePage() {
     if (me?.files_id) setImageUrl(me.files_id);
   }, [me]);
 
+  // Handle profile picture change
   const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -80,37 +81,26 @@ export default function ProfilePage() {
     formData.append("profile_picture", file);
 
     try {
-      const uploadRes = await fetchWithAuth(
-        `${USER_API}/user/update/profile/image`,
-        { method: "POST", body: formData },
-        {
-          token,
-          refreshToken: null,
-          saveToken: () => {},
-          saveRefreshToken: () => {},
-          signOut: logout,
-        }
-      );
-      if (!uploadRes.ok) throw new Error("Upload failed");
+      // 1️⃣ Upload new profile picture
+      const res = await fetch(`${USER_API}/user/update/profile/image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
 
-      const meRes = await fetchWithAuth(
-        `${USER_API}/user/me`,
-        { method: "GET" },
-        {
-          token,
-          refreshToken: null,
-          saveToken: () => {},
-          saveRefreshToken: () => {},
-          signOut: logout,
-        }
-      );
+      // 2️⃣ Refresh /user/me
+      const meRes = await fetch(`${USER_API}/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!meRes.ok) throw new Error("Failed to fetch user details");
-
       const meEncrypted = await meRes.json();
       const updatedMe = decryptPayload(meEncrypted);
 
+      // 3️⃣ Update context and local image
       saveMe(updatedMe);
       setImageUrl(updatedMe.files_id ? URL.createObjectURL(file) : null);
+
       alert("Profile picture updated!");
     } catch (err) {
       console.error(err);
